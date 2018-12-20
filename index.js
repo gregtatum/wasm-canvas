@@ -55,23 +55,47 @@
 /******/ 		"./target/js/canvas_bg.wasm": function() {
 /******/ 			return {
 /******/ 				"./canvas": {
-/******/ 					"__wbindgen_string_new": function(p0i32,p1i32) {
-/******/ 						return installedModules["./target/js/canvas.js"].exports["__wbindgen_string_new"](p0i32,p1i32);
+/******/ 					"__wbindgen_cb_forget": function(p0i32) {
+/******/ 						return installedModules["./target/js/canvas.js"].exports["__wbindgen_cb_forget"](p0i32);
 /******/ 					},
 /******/ 					"__wbindgen_defer_start": function() {
 /******/ 						return installedModules["./target/js/canvas.js"].exports["__wbindgen_defer_start"]();
 /******/ 					},
-/******/ 					"__wbindgen_cb_forget": function(p0i32) {
-/******/ 						return installedModules["./target/js/canvas.js"].exports["__wbindgen_cb_forget"](p0i32);
+/******/ 					"__wbindgen_string_new": function(p0i32,p1i32) {
+/******/ 						return installedModules["./target/js/canvas.js"].exports["__wbindgen_string_new"](p0i32,p1i32);
 /******/ 					},
-/******/ 					"__wbindgen_cb_drop": function(p0i32) {
-/******/ 						return installedModules["./target/js/canvas.js"].exports["__wbindgen_cb_drop"](p0i32);
+/******/ 					"__wbindgen_object_drop_ref": function(p0i32) {
+/******/ 						return installedModules["./target/js/canvas.js"].exports["__wbindgen_object_drop_ref"](p0i32);
+/******/ 					},
+/******/ 					"__wbindgen_json_parse": function(p0i32,p1i32) {
+/******/ 						return installedModules["./target/js/canvas.js"].exports["__wbindgen_json_parse"](p0i32,p1i32);
+/******/ 					},
+/******/ 					"__widl_f_log_1_": function(p0i32) {
+/******/ 						return installedModules["./target/js/canvas.js"].exports["__widl_f_log_1_"](p0i32);
 /******/ 					},
 /******/ 					"__widl_instanceof_CanvasRenderingContext2D": function(p0i32) {
 /******/ 						return installedModules["./target/js/canvas.js"].exports["__widl_instanceof_CanvasRenderingContext2D"](p0i32);
 /******/ 					},
+/******/ 					"__widl_f_begin_path_CanvasRenderingContext2D": function(p0i32) {
+/******/ 						return installedModules["./target/js/canvas.js"].exports["__widl_f_begin_path_CanvasRenderingContext2D"](p0i32);
+/******/ 					},
+/******/ 					"__widl_f_stroke_CanvasRenderingContext2D": function(p0i32) {
+/******/ 						return installedModules["./target/js/canvas.js"].exports["__widl_f_stroke_CanvasRenderingContext2D"](p0i32);
+/******/ 					},
+/******/ 					"__widl_f_set_stroke_style_CanvasRenderingContext2D": function(p0i32,p1i32) {
+/******/ 						return installedModules["./target/js/canvas.js"].exports["__widl_f_set_stroke_style_CanvasRenderingContext2D"](p0i32,p1i32);
+/******/ 					},
 /******/ 					"__widl_f_set_fill_style_CanvasRenderingContext2D": function(p0i32,p1i32) {
 /******/ 						return installedModules["./target/js/canvas.js"].exports["__widl_f_set_fill_style_CanvasRenderingContext2D"](p0i32,p1i32);
+/******/ 					},
+/******/ 					"__widl_f_set_line_width_CanvasRenderingContext2D": function(p0i32,p1f64) {
+/******/ 						return installedModules["./target/js/canvas.js"].exports["__widl_f_set_line_width_CanvasRenderingContext2D"](p0i32,p1f64);
+/******/ 					},
+/******/ 					"__widl_f_line_to_CanvasRenderingContext2D": function(p0i32,p1f64,p2f64) {
+/******/ 						return installedModules["./target/js/canvas.js"].exports["__widl_f_line_to_CanvasRenderingContext2D"](p0i32,p1f64,p2f64);
+/******/ 					},
+/******/ 					"__widl_f_move_to_CanvasRenderingContext2D": function(p0i32,p1f64,p2f64) {
+/******/ 						return installedModules["./target/js/canvas.js"].exports["__widl_f_move_to_CanvasRenderingContext2D"](p0i32,p1f64,p2f64);
 /******/ 					},
 /******/ 					"__widl_f_fill_rect_CanvasRenderingContext2D": function(p0i32,p1f64,p2f64,p3f64,p4f64) {
 /******/ 						return installedModules["./target/js/canvas.js"].exports["__widl_f_fill_rect_CanvasRenderingContext2D"](p0i32,p1f64,p2f64,p3f64,p4f64);
@@ -88,11 +112,11 @@
 /******/ 					"__widl_instanceof_HTMLCanvasElement": function(p0i32) {
 /******/ 						return installedModules["./target/js/canvas.js"].exports["__widl_instanceof_HTMLCanvasElement"](p0i32);
 /******/ 					},
-/******/ 					"__widl_f_get_context_HTMLCanvasElement": function(p0i32,p1i32,p2i32,p3i32) {
-/******/ 						return installedModules["./target/js/canvas.js"].exports["__widl_f_get_context_HTMLCanvasElement"](p0i32,p1i32,p2i32,p3i32);
+/******/ 					"__widl_f_get_context_with_context_options_HTMLCanvasElement": function(p0i32,p1i32,p2i32,p3i32,p4i32) {
+/******/ 						return installedModules["./target/js/canvas.js"].exports["__widl_f_get_context_with_context_options_HTMLCanvasElement"](p0i32,p1i32,p2i32,p3i32,p4i32);
 /******/ 					},
-/******/ 					"__widl_instanceof_Window": function(p0i32) {
-/******/ 						return installedModules["./target/js/canvas.js"].exports["__widl_instanceof_Window"](p0i32);
+/******/ 					"__wbindgen_cb_drop": function(p0i32) {
+/******/ 						return installedModules["./target/js/canvas.js"].exports["__wbindgen_cb_drop"](p0i32);
 /******/ 					},
 /******/ 					"__widl_f_request_animation_frame_Window": function(p0i32,p1i32,p2i32) {
 /******/ 						return installedModules["./target/js/canvas.js"].exports["__widl_f_request_animation_frame_Window"](p0i32,p1i32,p2i32);
@@ -106,11 +130,8 @@
 /******/ 					"__widl_f_inner_height_Window": function(p0i32,p1i32) {
 /******/ 						return installedModules["./target/js/canvas.js"].exports["__widl_f_inner_height_Window"](p0i32,p1i32);
 /******/ 					},
-/******/ 					"__wbindgen_object_drop_ref": function(p0i32) {
-/******/ 						return installedModules["./target/js/canvas.js"].exports["__wbindgen_object_drop_ref"](p0i32);
-/******/ 					},
-/******/ 					"__widl_f_log_1_": function(p0i32) {
-/******/ 						return installedModules["./target/js/canvas.js"].exports["__widl_f_log_1_"](p0i32);
+/******/ 					"__widl_f_device_pixel_ratio_Window": function(p0i32) {
+/******/ 						return installedModules["./target/js/canvas.js"].exports["__widl_f_device_pixel_ratio_Window"](p0i32);
 /******/ 					},
 /******/ 					"__wbg_newnoargs_6a80f84471205fc8": function(p0i32,p1i32) {
 /******/ 						return installedModules["./target/js/canvas.js"].exports["__wbg_newnoargs_6a80f84471205fc8"](p0i32,p1i32);
@@ -118,8 +139,8 @@
 /******/ 					"__wbg_call_582b20dfcad7fee4": function(p0i32,p1i32,p2i32) {
 /******/ 						return installedModules["./target/js/canvas.js"].exports["__wbg_call_582b20dfcad7fee4"](p0i32,p1i32,p2i32);
 /******/ 					},
-/******/ 					"__wbg_now_7e59c3475b182c97": function() {
-/******/ 						return installedModules["./target/js/canvas.js"].exports["__wbg_now_7e59c3475b182c97"]();
+/******/ 					"__wbg_random_2cc0c8d054a5c72a": function() {
+/******/ 						return installedModules["./target/js/canvas.js"].exports["__wbg_random_2cc0c8d054a5c72a"]();
 /******/ 					},
 /******/ 					"__wbg_error_cc95a3d302735ca3": function(p0i32,p1i32) {
 /******/ 						return installedModules["./target/js/canvas.js"].exports["__wbg_error_cc95a3d302735ca3"](p0i32,p1i32);
@@ -151,11 +172,11 @@
 /******/ 					"__wbindgen_rethrow": function(p0i32) {
 /******/ 						return installedModules["./target/js/canvas.js"].exports["__wbindgen_rethrow"](p0i32);
 /******/ 					},
-/******/ 					"__wbindgen_closure_wrapper117": function(p0i32,p1i32,p2i32) {
-/******/ 						return installedModules["./target/js/canvas.js"].exports["__wbindgen_closure_wrapper117"](p0i32,p1i32,p2i32);
+/******/ 					"__wbindgen_closure_wrapper237": function(p0i32,p1i32,p2i32) {
+/******/ 						return installedModules["./target/js/canvas.js"].exports["__wbindgen_closure_wrapper237"](p0i32,p1i32,p2i32);
 /******/ 					},
-/******/ 					"__widl_f_device_pixel_ratio_Window": function(p0i32) {
-/******/ 						return installedModules["./target/js/canvas.js"].exports["__widl_f_device_pixel_ratio_Window"](p0i32);
+/******/ 					"__widl_instanceof_Window": function(p0i32) {
+/******/ 						return installedModules["./target/js/canvas.js"].exports["__widl_instanceof_Window"](p0i32);
 /******/ 					}
 /******/ 				}
 /******/ 			};
@@ -256,7 +277,7 @@
 /******/ 				promises.push(installedWasmModuleData);
 /******/ 			else {
 /******/ 				var importObject = wasmImportObjects[wasmModuleId]();
-/******/ 				var req = fetch(__webpack_require__.p + "" + {"./target/js/canvas_bg.wasm":"119bd0f0214560107827"}[wasmModuleId] + ".module.wasm");
+/******/ 				var req = fetch(__webpack_require__.p + "" + {"./target/js/canvas_bg.wasm":"f7a5a3d1730043510504"}[wasmModuleId] + ".module.wasm");
 /******/ 				var promise;
 /******/ 				if(importObject instanceof Promise && typeof WebAssembly.compileStreaming === 'function') {
 /******/ 					promise = Promise.all([WebAssembly.compileStreaming(req), importObject]).then(function(items) {
@@ -357,7 +378,7 @@
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
-eval("Promise.all(/*! import() */[__webpack_require__.e(1), __webpack_require__.e(0)]).then(__webpack_require__.bind(null, /*! ./target/js/canvas */ \"./target/js/canvas.js\"))\n  .then(canvasExample => {\n    console.log('window.canvasExample', canvasExample)\n    window.canvasExample = canvasExample\n  })\n  .catch((error) => {\n    console.error('There was an error when importing the file', error)\n  });\n\n\n//# sourceURL=webpack:///./index.js?");
+eval("Promise.all(/*! import() */[__webpack_require__.e(1), __webpack_require__.e(0)]).then(__webpack_require__.bind(null, /*! ./target/js/canvas */ \"./target/js/canvas.js\"))\n  .then(canvasExample => {\n    console.log('window.canvasExample')\n    window.canvasExample = canvasExample\n  })\n  .catch((error) => {\n    console.error('There was an error when importing the file', error)\n  });\n\n\n//# sourceURL=webpack:///./index.js?");
 
 /***/ })
 
