@@ -7,6 +7,7 @@ use std::panic;
 use std::f64;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
+use std::ops::Rem;
 
 fn set_canvas_size() {
     let window = web_sys::window().expect("The environment should have a window object.");
@@ -58,28 +59,9 @@ pub fn draw() {
         .dyn_into::<web_sys::CanvasRenderingContext2d>()
         .unwrap();
 
-    context.begin_path();
+    let dpr = window.device_pixel_ratio();
+    let now = js_sys::Date::now();
 
-    // Draw the outer circle.
-    context
-        .arc(75.0, 75.0, 50.0, 0.0, f64::consts::PI * 2.0)
-        .unwrap();
-
-    // Draw the mouth.
-    context.move_to(110.0, 75.0);
-    context.arc(75.0, 75.0, 35.0, 0.0, f64::consts::PI).unwrap();
-
-    // Draw the left eye.
-    context.move_to(65.0, 65.0);
-    context
-        .arc(60.0, 65.0, 5.0, 0.0, f64::consts::PI * 2.0)
-        .unwrap();
-
-    // Draw the right eye.
-    context.move_to(95.0, 65.0);
-    context
-        .arc(90.0, 65.0, 5.0, 0.0, f64::consts::PI * 2.0)
-        .unwrap();
-
-    context.stroke();
+    context.set_fill_style(&JsValue::from_str("red"));
+    context.fill_rect(now.rem(100.0), 10.0, 40.0, 50.0);
 }
