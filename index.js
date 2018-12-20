@@ -1,6 +1,6 @@
 import('./target/js/canvas')
   .then(canvasExample => {
-    console.log('window.canvasExample', canvasExample)
+    console.log('window.canvasExample')
     window.canvasExample = canvasExample
   })
   .catch((error) => {
