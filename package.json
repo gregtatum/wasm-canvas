@@ -7,7 +7,7 @@
   "scripts": {
     "build-wasm": "./build-wasm.sh",
     "build-wasm-release": "CARGO_FLAGS='--release' ./build-wasm.sh",
-    "watch-wasm": "watch ./build-wasm.sh ./src",
+    "watch-wasm": "watch 'clear; ./build-wasm.sh' ./src",
     "build-webpack": "webpack",
     "build": "run-s build-wasm-release build-webpack",
     "serve": "webpack-dev-server",

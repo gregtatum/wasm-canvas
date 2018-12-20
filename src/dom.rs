@@ -83,7 +83,14 @@ pub fn set_canvas_to_window_size() {
         .unwrap();
 }
 
-pub fn start_raf(callback: &'static Fn()) {
+pub fn start_raf<F>(mut callback: F)
+where
+    // The function passed in is non-mutable, and each reference has to have a lifetime
+    // at least equal to 'static. The function itself is not static.
+    F: FnMut() + 'static,
+{
+    // Create a self-referential reference counted cell. This cell contains our
+    // closure which will be looped over, and kept alive.
     let f = Rc::new(RefCell::new(None));
     let g = f.clone();
     *g.borrow_mut() = Some(Closure::wrap(Box::new(move || {
@@ -91,6 +98,7 @@ pub fn start_raf(callback: &'static Fn()) {
         request_animation_frame(f.borrow().as_ref().unwrap());
     }) as Box<FnMut()>));
 
+    // Kick off the raf loop.
     request_animation_frame(g.borrow().as_ref().unwrap());
 }
 
