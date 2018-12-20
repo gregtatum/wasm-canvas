@@ -1,15 +1,7 @@
 import('./target/js/canvas')
   .then(canvasExample => {
-    console.log('Loaded the canvasExample', canvasExample)
-    function loop () {
-      try {
-        canvasExample.draw()
-        requestAnimationFrame(loop);
-      } catch (error) {
-        console.error('Error drawing the canvas', error)
-      }
-    }
-    loop();
+    console.log('window.canvasExample', canvasExample)
+    window.canvasExample = canvasExample
   })
   .catch((error) => {
     console.error('There was an error when importing the file', error)
