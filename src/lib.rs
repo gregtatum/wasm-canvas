@@ -2,7 +2,10 @@
 #![allow(unused_variables)]
 pub mod dom;
 pub mod draw;
+pub mod lines;
 
+#[macro_use]
+extern crate serde_derive;
 extern crate console_error_panic_hook;
 extern crate js_sys;
 extern crate wasm_bindgen;
@@ -19,10 +22,15 @@ pub fn run() -> Result<(), JsValue> {
 
     dom::on_window_resize(&dom::set_canvas_to_window_size);
     dom::start_raf({
-        let mut state = draw::init();
+        let mut state = draw::init(dom::PageState {
+            width: dom::window_device_pixel_width(),
+            height: dom::window_device_pixel_height(),
+            ctx: dom::get_context(),
+        });
+
         move || {
-            state.width = dom::window_device_pixel_width();
-            state.height = dom::window_device_pixel_height();
+            state.page.width = dom::window_device_pixel_width();
+            state.page.height = dom::window_device_pixel_height();
             draw::tick(&mut state)
         }
     });

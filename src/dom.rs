@@ -11,6 +11,13 @@ use wasm_bindgen::JsCast;
 
 /// This module provides easy interfaces into the web_sys library.
 
+#[derive(Debug)]
+pub struct PageState {
+    pub width: f64,
+    pub height: f64,
+    pub ctx: web_sys::CanvasRenderingContext2d,
+}
+
 pub fn window() -> web_sys::Window {
     web_sys::window().expect("no global `window` exists")
 }
@@ -49,6 +56,11 @@ pub fn window_device_pixel_height() -> f64 {
             .expect("turned the width to a f64")
 }
 
+#[derive(Deserialize, Serialize)]
+struct ContextOptions {
+    alpha: bool,
+}
+
 pub fn get_context() -> web_sys::CanvasRenderingContext2d {
     let canvas = document()
         .get_element_by_id("canvas")
@@ -60,7 +72,10 @@ pub fn get_context() -> web_sys::CanvasRenderingContext2d {
         .unwrap();
 
     canvas
-        .get_context("2d")
+        .get_context_with_context_options(
+            "2d",
+            &JsValue::from_serde(&ContextOptions { alpha: false }).unwrap(),
+        )
         .unwrap()
         .unwrap()
         .dyn_into::<web_sys::CanvasRenderingContext2d>()
