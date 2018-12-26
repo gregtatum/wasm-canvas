@@ -13,6 +13,7 @@ type TreeNodeIndex = usize;
 pub struct TreeNode {
     pub start: Vector2<f64>,
     pub end: Vector2<f64>,
+    pub fully_drawn: bool,
     pub growth_length: f64,
     pub depth: i32,
     pub children: Vec<TreeNodeIndex>,
@@ -29,63 +30,176 @@ impl TreeNode {
             start: Vector2::new(start_x, start_y),
             end: Vector2::new(end_x, end_y),
             growth_length: 0.0,
+            fully_drawn: false,
             children: Vec::new(),
             depth: depth,
-            grow_speed: random(0.02, 0.04),
-            limb_length: random(0.07, 0.1),
+            grow_speed: random(0.02, 0.08),
+            limb_length: random(0.02, 0.08),
             split_theta_range: 1.0,
-            max_tree_depth: 7,
+            max_tree_depth: 18,
         }
     }
 
-    pub fn draw(&self, nodes: &MutableNodes, page_state: &dom::PageState) {
+    pub fn draw(&mut self, nodes: &MutableNodes, page_state: &dom::PageState, force_redraw: bool) {
         let dom::PageState { width, height, ctx } = page_state;
         let l = width.min(*height);
         let w = width;
         let w2 = w * 0.5;
+        let mut do_redraw = force_redraw;
 
         // Grow the line out.
         let end = if self.growth_length == 1.0 {
+            if !self.fully_drawn {
+                do_redraw = true;
+                self.fully_drawn = true;
+            }
             self.end.clone()
         } else {
+            do_redraw = true;
             self.start.lerp(
                 &self.end,
                 self.growth_length * cubic_out(self.growth_length),
             )
         };
 
-        // The lines are in terms of unit interval space, convert this into canvas device pixel
-        // space, with (0, 0) centered at the top middle.
-        ctx.move_to(self.start.x * l + w2, self.start.y * l);
-        ctx.line_to(end.x * l + w2, end.y * l);
+        if do_redraw {
+            // The lines are in terms of unit interval space, convert this into canvas device pixel
+            // space, with (0, 0) centered at the top middle.
+            ctx.move_to(self.start.x * l + w2, self.start.y * l);
+            ctx.line_to(end.x * l + w2, end.y * l);
+        }
 
         let nodes_borrow = nodes.borrow();
         for child_node_index in &self.children {
-            let child_node = nodes_borrow
+            let mut child_node = nodes_borrow
                 .get(*child_node_index)
                 .expect("Child node not found for the index")
-                .borrow();
+                .borrow_mut();
 
             // Recurse into all the child nodes
-            child_node.draw(&nodes, &page_state)
+            child_node.draw(&nodes, &page_state, force_redraw)
         }
     }
 
+    /// Go through all of the nodes, and find any that intersect, excluding the current one.
+    pub fn find_intersecting_points(&self, nodes: &MutableNodes) -> Vec<Vector2<f64>> {
+        let mut intersections = Vec::new();
+        // Go through all the lines and check for intersections.
+        let nodes_borrow = nodes
+            .try_borrow()
+            .expect("Attempting to borrow the nodes to check for intersections");
+
+        for node_cell in nodes_borrow.iter() {
+            match node_cell.try_borrow() {
+                Ok(node) => match self.intersects(&node) {
+                    Some(vec) => intersections.push(vec),
+                    None => {
+                        // This is the current node, as we already have mutably borrowed it.
+                    }
+                },
+                Err(_) => {}
+            }
+        }
+        intersections
+    }
+
+    pub fn find_nearest_intersection(
+        &self,
+        intersections: Vec<Vector2<f64>>,
+    ) -> Option<Vector2<f64>> {
+        if intersections.len() == 0 {
+            return None;
+        }
+        intersections.iter().fold(None, |acc, x| match acc {
+            Some(y) => {
+                if distance_squared(&x, &self.start) < distance_squared(&y, &self.start) {
+                    Some(*x)
+                } else {
+                    Some(y)
+                }
+            }
+            None => Some(*x),
+        })
+    }
+
     pub fn split(&mut self, nodes: &MutableNodes) {
-        let diff = self.end - self.start;
-        let drift: f64 =
-            js_sys::Math::random() * self.split_theta_range - self.split_theta_range * 0.5;
-        let theta = diff.y.atan2(diff.x) + drift;
+        let intersections = self.find_intersecting_points(nodes);
+        let nearest_intersection = self.find_nearest_intersection(intersections);
+        let new_start = &self.end;
+        let depth = self.depth + random(0.45, 1.0).round() as i32;
+        let new_end = {
+            // Rotate the node a bit randomly.
+            let diff = self.end - self.start;
+            let drift: f64 =
+                js_sys::Math::random() * self.split_theta_range - self.split_theta_range * 0.5;
+            let theta = diff.y.atan2(diff.x) + drift;
+            Vector2::new(
+                new_start.x + theta.cos() * self.limb_length,
+                new_start.y + theta.sin() * self.limb_length,
+            )
+        };
+
+        let new_node = {
+            // Create the new node, and modify it if it intersects with any existing nodes.
+            let mut new_node = TreeNode::new(new_start.x, new_start.y, new_end.x, new_end.y, depth);
+
+            let intersections = new_node.find_intersecting_points(nodes);
+            let nearest_intersection = new_node.find_nearest_intersection(intersections);
+
+            match nearest_intersection {
+                Some(intersection) => {
+                    new_node.end = intersection;
+                    new_node.depth = new_node.max_tree_depth;
+                }
+                None => {}
+            }
+            new_node
+        };
+
+        {
+            // Add the new node to the existing data structures.
+            let mut mutable_nodes = nodes
+                .try_borrow_mut()
+                .expect("Unable to checkout mutables nodes for a split");
+            let index = mutable_nodes.len();
+            mutable_nodes.push(Rc::new(RefCell::new(new_node)));
+            self.children.push(index)
+        }
+    }
+
+    pub fn split2(&mut self, nodes: &MutableNodes) {
+        let intersections = self.find_intersecting_points(nodes);
+        let nearest_intersection = self.find_nearest_intersection(intersections);
+        let new_start = &self.end;
+
         let mut mutable_nodes = nodes
             .try_borrow_mut()
             .expect("Unable to checkout mutables nodes for a split");
         let index = mutable_nodes.len();
+
+        let (depth, new_end) = match nearest_intersection {
+            Some(intersection) => (self.max_tree_depth, intersection),
+            None => {
+                let depth = self.depth + random(0.45, 1.0).round() as i32;
+                // Rotate the node a bit randomly.
+                let diff = self.end - self.start;
+                let drift: f64 =
+                    js_sys::Math::random() * self.split_theta_range - self.split_theta_range * 0.5;
+                let theta = diff.y.atan2(diff.x) + drift;
+                let new_end = Vector2::new(
+                    new_start.x + theta.cos() * self.limb_length,
+                    new_start.y + theta.sin() * self.limb_length,
+                );
+                (depth, new_end)
+            }
+        };
+
         mutable_nodes.push(Rc::new(RefCell::new(TreeNode::new(
-            self.end.x,
-            self.end.y,
-            self.end.x + theta.cos() * self.limb_length,
-            self.end.y + theta.sin() * self.limb_length,
-            self.depth + random(0.45, 1.0).round() as i32,
+            new_start.x,
+            new_start.y,
+            new_end.x,
+            new_end.y,
+            depth,
         ))));
         self.children.push(index)
     }
@@ -119,7 +233,7 @@ impl TreeNode {
         }
     }
 
-    pub fn intersection(&self, other: &TreeNode) -> Option<Vector2<f64>> {
+    pub fn intersects(&self, other: &TreeNode) -> Option<Vector2<f64>> {
         check_intersection(
             self.start.x,
             self.start.y,
@@ -181,4 +295,10 @@ fn cubic_out(t: f64) -> f64 {
 
 fn random(start: f64, end: f64) -> f64 {
     js_sys::Math::random() * (end - start) + start
+}
+
+fn distance_squared(a: &Vector2<f64>, b: &Vector2<f64>) -> f64 {
+    let x = b.x - a.x;
+    let y = b.y - b.x;
+    x * x + y * y
 }
