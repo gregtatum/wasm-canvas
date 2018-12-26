@@ -1,6 +1,7 @@
-extern crate nalgebra;
+extern crate cgmath;
 
-use self::nalgebra::Vector2;
+use self::cgmath::prelude::*;
+use self::cgmath::Vector2;
 use dom;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -63,10 +64,9 @@ impl TreeNode {
                 self.fully_drawn = true;
             } else {
                 // Compute the beginning.
-                end = self.start.lerp(
-                    &self.end,
-                    self.growth_length * cubic_out(self.growth_length),
-                )
+                end = self
+                    .start
+                    .lerp(self.end, self.growth_length * cubic_out(self.growth_length))
             };
         }
 

@@ -6,9 +6,9 @@ version = "0.1.0"
 crate-type = ["cdylib"]
 
 [dependencies]
-js-sys = "0.3.6"
+cgmath = "0.16.1"
 console_error_panic_hook = "0.1.5"
-nalgebra = "0.16.12"
+js-sys = "0.3.6"
 serde = "^1.0.59"
 serde_derive = "^1.0.59"
 

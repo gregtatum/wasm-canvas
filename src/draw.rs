@@ -1,6 +1,6 @@
 extern crate console_error_panic_hook;
 extern crate js_sys;
-extern crate nalgebra;
+extern crate cgmath;
 extern crate wasm_bindgen;
 extern crate web_sys;
 
