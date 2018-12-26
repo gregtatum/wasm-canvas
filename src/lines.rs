@@ -13,6 +13,7 @@ type TreeNodeIndex = usize;
 pub struct TreeNode {
     pub start: Vector2<f64>,
     pub end: Vector2<f64>,
+    pub last_drawn_end: Vector2<f64>,
     pub fully_drawn: bool,
     pub growth_length: f64,
     pub depth: i32,
@@ -29,6 +30,7 @@ impl TreeNode {
         TreeNode {
             start: Vector2::new(start_x, start_y),
             end: Vector2::new(end_x, end_y),
+            last_drawn_end: Vector2::new(start_x, start_y),
             growth_length: 0.0,
             fully_drawn: false,
             children: Vec::new(),
@@ -45,28 +47,37 @@ impl TreeNode {
         let l = width.min(*height);
         let w = width;
         let w2 = w * 0.5;
-        let mut do_redraw = force_redraw;
 
-        // Grow the line out.
-        let end = if self.growth_length == 1.0 {
-            if !self.fully_drawn {
-                do_redraw = true;
-                self.fully_drawn = true;
+        let do_redraw = force_redraw || !self.fully_drawn;
+        let mut end = self.end;
+        let mut start = self.start;
+
+        if !self.fully_drawn {
+            if !force_redraw {
+                // Do a partial redraw only if we can.
+                start = self.last_drawn_end;
             }
-            self.end.clone()
-        } else {
-            do_redraw = true;
-            self.start.lerp(
-                &self.end,
-                self.growth_length * cubic_out(self.growth_length),
-            )
-        };
+            // Grow the line out.
+            if self.growth_length == 1.0 {
+                // Mark as fully drawn for the next draw call.
+                self.fully_drawn = true;
+            } else {
+                // Compute the beginning.
+                end = self.start.lerp(
+                    &self.end,
+                    self.growth_length * cubic_out(self.growth_length),
+                )
+            };
+        }
 
         if do_redraw {
             // The lines are in terms of unit interval space, convert this into canvas device pixel
             // space, with (0, 0) centered at the top middle.
-            ctx.move_to(self.start.x * l + w2, self.start.y * l);
+            ctx.move_to(start.x * l + w2, start.y * l);
             ctx.line_to(end.x * l + w2, end.y * l);
+
+            // Remember the last drawn end so we can avoid re-drawing it.
+            self.last_drawn_end = end;
         }
 
         let nodes_borrow = nodes.borrow();
