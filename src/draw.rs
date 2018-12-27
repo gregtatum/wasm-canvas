@@ -16,16 +16,32 @@ use wasm_bindgen::prelude::*;
 #[allow(unused_imports)]
 use web_sys::console;
 
+// This file contains all of the initialization code for this particular visualization.
+// It creates the initial conditions, and performs the higher-level update/draw calls
+// for all of the components.
+
+/// The State contains all of the state that sticks around between draw and update calls
+/// for this visualization. It is owned by the requestAnimationFrame loop, and passed by
+/// reference into the draw and update calls.
 #[derive(Debug)]
 pub struct State {
+    /// All the nodes (lines) to draw for this visualization.
     pub nodes: MutableNodes,
+    /// This flag gets changed when it's necessary to completely redraw the visualization.
+    /// This is potentially an expensive operation, so care has been taken to limit re-draws.
     pub force_redraw: bool,
+    /// Remember the current state of the page we are on, such as width and height.
     pub page: dom::PageState,
+    /// This is a data structure to help speed up intersection tests for nodes.
     pub r_tree: RTree<TreeNodeReference>,
 }
 
+/// Initialize the state for the first time. The page and canvas have already been set up, but
+/// now we want to intialize the State for this particular visualization.
 pub fn init(page: dom::PageState) -> State {
     let mut r_tree = RTree::new();
+
+    // Create the initial nodes.
     let mut tree = TreeNode::new(0.0, 0.0, 0.0, 0.0, 0);
     let l0 = tree.limb_length;
     let l1 = 1.0 - tree.limb_length;
@@ -52,16 +68,17 @@ pub fn init(page: dom::PageState) -> State {
         Rc::new(RefCell::new(c)),
         Rc::new(RefCell::new(d)),
     ]);
-    let force_redraw = true;
 
     State {
         nodes,
         page,
-        force_redraw,
+        force_redraw: true,
         r_tree,
     }
 }
 
+/// The tick is called for every requestAnimationFrame. It delegates out to the update and
+/// draw calls for the visualization.
 pub fn tick(state: &mut State) {
     let base_node = state
         .nodes
@@ -70,14 +87,24 @@ pub fn tick(state: &mut State) {
         .expect("There must be at least 1 node.")
         .clone();
 
+    if state.page.is_resized {
+        state.force_redraw = true;
+    }
+
+    // Update:
+    // Grow recursively grows all of the nodes.
     base_node.borrow_mut().grow(&state.nodes, &mut state.r_tree);;
+
+    // Draw:
     draw_lines(&state);
+
+    // Reset the force_redraw.
     state.force_redraw = false;
 }
 
+/// Draw all of the lines.
 fn draw_lines(state: &State) {
     let context = dom::get_context();
-    let now = js_sys::Date::now();
 
     if state.force_redraw {
         // Only clear if we are doing a full draw.
@@ -86,7 +113,7 @@ fn draw_lines(state: &State) {
     }
 
     context.begin_path();
-    context.set_line_width(4.0);
+    context.set_line_width(2.0 * state.page.device_pixel_ratio);
     context.set_stroke_style(&JsValue::from_str("#fff"));
 
     let nodes_borrow = state.nodes.borrow();

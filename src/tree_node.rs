@@ -13,6 +13,12 @@ use web_sys::console;
 pub type MutableNodes = RefCell<Vec<Rc<RefCell<TreeNode>>>>;
 type TreeNodeIndex = usize;
 
+/// The TreeNode represents a single line in a tree. It can have children. The nodes are owned
+/// by the MutableNodes vector. These are then stored in a reference counted RefCell, as there
+/// is a lot of sharing and mutation that happens around this data structure. Typically,
+/// nodes are referenced with a TreeNodeIndex, and then checked out through the MutableNodes.
+/// This code relies heavily on runtime checks that will panic when doing the wrong thing.
+/// This node is a "fat" object, as any value needed for updating or drawing is added here.
 #[derive(Debug)]
 pub struct TreeNode {
     pub start: Vector2<f64>,
@@ -30,7 +36,6 @@ pub struct TreeNode {
 
 impl TreeNode {
     pub fn new(start_x: f64, start_y: f64, end_x: f64, end_y: f64, depth: i32) -> TreeNode {
-        let grow_speed = 0.1 * 0.5;
         TreeNode {
             start: Vector2::new(start_x, start_y),
             end: Vector2::new(end_x, end_y),
@@ -46,8 +51,13 @@ impl TreeNode {
         }
     }
 
+    /// Recursively descend into the data structure to create draw commands. This only performs
+    /// "ctx.move_to" and "ctx.line_to" commands, without calling "ctx.stroke".
     pub fn draw(&mut self, nodes: &MutableNodes, page_state: &dom::PageState, force_redraw: bool) {
-        let dom::PageState { width, height, ctx } = page_state;
+        let dom::PageState {
+            width, height, ctx, ..
+        } = page_state;
+
         let l = width.min(*height);
         let w = width;
         let w2 = w * 0.5;
@@ -96,36 +106,45 @@ impl TreeNode {
     }
 
     /// Go through all of the nodes, and find any that intersect, excluding the current one.
+    /// This is a potentially very expensive operation, so care must be taken to do this
+    /// efficiently. The nodes grow potentially exponentially (mitigated by the fact that they
+    /// stop splitting the moment they collide with others.)
+    ///
+    /// Intersection checks are potentially a O(n^2) operation, as each node must be compared
+    /// to all other nodes. In order to get around this, we use the R-tree data structure.
+    /// The insert is purportedly O(log(n)), and this is where we end up spending the most
+    /// time when growing very large trees.
+    ///
+    /// The look-ups are handled by bounding boxes, and appear to be quite fast. I'm not able
+    /// to find a specific big O notation for the lookup.
+    ///
+    /// After getting all potential intersections, test for all of the real intersections.
     pub fn find_intersecting_points(
         &self,
         nodes: &MutableNodes,
         r_tree: &RTree<TreeNodeReference>,
     ) -> Vec<Vector2<f64>> {
-        let r_tree_intersections = r_tree.lookup_in_rectangle(&BoundingRect::from_corners(
+        // Look up potential intersections.
+        let potential_intersections = r_tree.lookup_in_rectangle(&BoundingRect::from_corners(
             &Point2::new(self.start.x, self.start.y),
             &Point2::new(self.end.x, self.end.y),
         ));
 
-        let mut intersections = Vec::new();
+        let mut true_intersections = Vec::new();
 
         // Go through all the lines and check for intersections.
         let nodes_borrow = nodes
             .try_borrow()
             .expect("Attempting to borrow the nodes to check for intersections");
 
-        for TreeNodeReference {
-            from,
-            to,
-            node_index,
-        } in r_tree_intersections
-        {
+        for TreeNodeReference { node_index, .. } in potential_intersections {
             let node_cell = nodes_borrow
                 .get(*node_index)
                 .expect("Got a node from a TreeNodeReference");
 
             match node_cell.try_borrow() {
                 Ok(node) => match self.intersects(&node) {
-                    Some(vec) => intersections.push(vec),
+                    Some(vec) => true_intersections.push(vec),
                     None => {
                         // This is the current node, as we already have mutably borrowed it.
                     }
@@ -133,9 +152,10 @@ impl TreeNode {
                 Err(_) => {}
             }
         }
-        intersections
+        true_intersections
     }
 
+    /// Take a list of intersection, and find the nearest to this node.
     pub fn find_nearest_intersection(
         &self,
         intersections: Vec<Vector2<f64>>,
@@ -155,9 +175,9 @@ impl TreeNode {
         })
     }
 
+    /// After this line finishes growing, the node is "split" by adding on new children nodes.
+    /// These nodes are randomly rotated a little bit.
     pub fn split(&mut self, nodes: &MutableNodes, r_tree: &mut RTree<TreeNodeReference>) {
-        let intersections = self.find_intersecting_points(nodes, r_tree);
-        let nearest_intersection = self.find_nearest_intersection(intersections);
         let new_start = &self.end;
         let depth = self.depth + random(0.45, 1.0).round() as i32;
         let new_end = {
@@ -206,6 +226,8 @@ impl TreeNode {
         }
     }
 
+    /// Increase the grow length of the node, if it's not fully grown. Once the line is
+    /// fully grown, split it into two new nodes.
     pub fn grow(&mut self, nodes: &MutableNodes, r_tree: &mut RTree<TreeNodeReference>) {
         if self.children.len() == 0 {
             // Grow the line.
@@ -235,6 +257,7 @@ impl TreeNode {
         }
     }
 
+    /// Check a true intersection between two nodes.
     pub fn intersects(&self, other: &TreeNode) -> Option<Vector2<f64>> {
         check_intersection(
             self.start.x,

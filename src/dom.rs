@@ -1,8 +1,3 @@
-extern crate console_error_panic_hook;
-extern crate js_sys;
-extern crate wasm_bindgen;
-extern crate web_sys;
-
 use std::cell::RefCell;
 use std::f64;
 use std::rc::Rc;
@@ -15,6 +10,8 @@ use wasm_bindgen::JsCast;
 pub struct PageState {
     pub width: f64,
     pub height: f64,
+    pub device_pixel_ratio: f64,
+    pub is_resized: bool,
     pub ctx: web_sys::CanvasRenderingContext2d,
 }
 
@@ -100,7 +97,7 @@ pub fn set_canvas_to_window_size() {
 
 pub fn start_raf<F>(mut callback: F)
 where
-    // The function passed in is non-mutable, and each reference has to have a lifetime
+    // The function passed in is mutable, and each reference has to have a lifetime
     // at least equal to 'static. The function itself is not static.
     F: FnMut() + 'static,
 {
@@ -117,9 +114,10 @@ where
     request_animation_frame(g.borrow().as_ref().unwrap());
 }
 
-pub fn on_window_resize(callback: &'static Fn()) {
-    // Set the canvas size and then add an event listener to resize on window resize.
-    set_canvas_to_window_size();
+pub fn on_window_resize<F>(callback: F)
+where
+    F: FnMut() + 'static,
+{
     let closure = Closure::wrap(Box::new(callback) as Box<FnMut()>);
     (window().as_ref() as &web_sys::EventTarget)
         .add_event_listener_with_callback("resize", closure.as_ref().unchecked_ref())
