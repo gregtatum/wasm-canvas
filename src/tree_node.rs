@@ -32,6 +32,7 @@ pub struct TreeNode {
     pub limb_length: f64,
     pub split_theta_range: f64,
     pub max_tree_depth: i32,
+    pub split_count: i32,
 }
 
 impl TreeNode {
@@ -48,20 +49,13 @@ impl TreeNode {
             limb_length: random(0.01, 0.04),
             split_theta_range: 1.0,
             max_tree_depth: 40,
+            split_count: 3,
         }
     }
 
     /// Recursively descend into the data structure to create draw commands. This only performs
     /// "ctx.move_to" and "ctx.line_to" commands, without calling "ctx.stroke".
     pub fn draw(&mut self, nodes: &MutableNodes, page_state: &dom::PageState, force_redraw: bool) {
-        let dom::PageState {
-            width, height, ctx, ..
-        } = page_state;
-
-        let l = width.min(*height);
-        let w = width;
-        let w2 = w * 0.5;
-
         let do_redraw = force_redraw || !self.fully_drawn;
         let mut end = self.end;
         let mut start = self.start;
@@ -84,11 +78,30 @@ impl TreeNode {
         }
 
         if do_redraw {
+            let dom::PageState {
+                width, height, ctx, ..
+            } = page_state;
+
+            let l = width.min(*height);
+            let w2 = width * 0.5;
+            let h2 = height * 0.5;
+
+            let theta = std::f64::consts::PI * 0.25;
+
+            let mut x0 = start.x * theta.cos() - start.y * theta.sin();
+            let mut y0 = start.x * theta.sin() + start.y * theta.cos();
+            let mut x1 = end.x * theta.cos() - end.y * theta.sin();
+            let mut y1 = end.x * theta.sin() + end.y * theta.cos();
+
+            x0 = w2 + x0 * l * 0.7;
+            y0 = h2 + y0 * l * 0.7;
+            x1 = w2 + x1 * l * 0.7;
+            y1 = h2 + y1 * l * 0.7;
+
             // The lines are in terms of unit interval space, convert this into canvas device pixel
             // space, with (0, 0) centered at the top middle.
-            ctx.move_to(start.x * l + w2, start.y * l);
-            ctx.line_to(end.x * l + w2, end.y * l);
-
+            ctx.move_to(x0, y0);
+            ctx.line_to(x1, y1);
             // Remember the last drawn end so we can avoid re-drawing it.
             self.last_drawn_end = end;
         }
@@ -235,8 +248,11 @@ impl TreeNode {
 
             if self.growth_length == 1.0 && self.depth < self.max_tree_depth {
                 self.growth_length = 1.0;
-                self.split(&nodes, r_tree);
-                self.split(&nodes, r_tree);
+                if self.start.x.abs() <= 0.5 && self.start.y.abs() <= 0.5 {
+                    for _ in 0..self.split_count {
+                        self.split(&nodes, r_tree);
+                    }
+                }
             }
         }
 

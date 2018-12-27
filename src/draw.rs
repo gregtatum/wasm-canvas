@@ -6,7 +6,7 @@ extern crate wasm_bindgen;
 extern crate web_sys;
 
 use self::spade::rtree::RTree;
-use dom;
+use dom::PageState;
 use std::cell::RefCell;
 use std::rc::Rc;
 use tree_node::{MutableNodes, TreeNode};
@@ -31,24 +31,24 @@ pub struct State {
     /// This is potentially an expensive operation, so care has been taken to limit re-draws.
     pub force_redraw: bool,
     /// Remember the current state of the page we are on, such as width and height.
-    pub page: dom::PageState,
+    pub page: PageState,
     /// This is a data structure to help speed up intersection tests for nodes.
     pub r_tree: RTree<TreeNodeReference>,
 }
 
 /// Initialize the state for the first time. The page and canvas have already been set up, but
 /// now we want to intialize the State for this particular visualization.
-pub fn init(page: dom::PageState) -> State {
+pub fn init(page: PageState) -> State {
     let mut r_tree = RTree::new();
 
     // Create the initial nodes.
     let mut tree = TreeNode::new(0.0, 0.0, 0.0, 0.0, 0);
-    let l0 = tree.limb_length;
-    let l1 = 1.0 - tree.limb_length;
-    let a = TreeNode::new(-0.5, 0.0, -0.5 + l0, l0, 0);
-    let b = TreeNode::new(-0.5, 1.0, -0.5 + l0, l1, 0);
-    let c = TreeNode::new(0.5, 1.0, 0.5 - l0, l1, 0);
-    let d = TreeNode::new(0.5, 0.0, 0.5 - l0, l0, 0);
+    let l = tree.limb_length;
+    // Variable naming: left, right, bottom, top - l, r, b, t
+    let lt = TreeNode::new(-0.5, -0.5, -0.5 + l, -0.5 + l, 1);
+    let lb = TreeNode::new(-0.5, 0.5, -0.5 + l, 0.5 - l, 1);
+    let rt = TreeNode::new(0.5, -0.5, 0.5 - l, -0.5 + l, 1);
+    let rb = TreeNode::new(0.5, 0.5, 0.5 - l, 0.5 - l, 1);
     {
         tree.children.push(1);
         tree.children.push(2);
@@ -56,17 +56,17 @@ pub fn init(page: dom::PageState) -> State {
         tree.children.push(4);
     };
     r_tree.insert(TreeNodeReference::from_node(&tree, 0));
-    r_tree.insert(TreeNodeReference::from_node(&a, 1));
-    r_tree.insert(TreeNodeReference::from_node(&b, 2));
-    r_tree.insert(TreeNodeReference::from_node(&c, 3));
-    r_tree.insert(TreeNodeReference::from_node(&d, 4));
+    r_tree.insert(TreeNodeReference::from_node(&lt, 1));
+    r_tree.insert(TreeNodeReference::from_node(&lb, 2));
+    r_tree.insert(TreeNodeReference::from_node(&rt, 3));
+    r_tree.insert(TreeNodeReference::from_node(&rb, 4));
 
     let nodes = RefCell::new(vec![
         Rc::new(RefCell::new(tree)),
-        Rc::new(RefCell::new(a)),
-        Rc::new(RefCell::new(b)),
-        Rc::new(RefCell::new(c)),
-        Rc::new(RefCell::new(d)),
+        Rc::new(RefCell::new(lt)),
+        Rc::new(RefCell::new(lb)),
+        Rc::new(RefCell::new(rt)),
+        Rc::new(RefCell::new(rb)),
     ]);
 
     State {
@@ -104,17 +104,27 @@ pub fn tick(state: &mut State) {
 
 /// Draw all of the lines.
 fn draw_lines(state: &State) {
-    let context = dom::get_context();
+    let ctx = &state.page.ctx;
 
     if state.force_redraw {
         // Only clear if we are doing a full draw.
-        context.set_fill_style(&JsValue::from_str("#333"));
-        context.fill_rect(0.0, 0.0, state.page.width, state.page.height);
+        ctx.set_fill_style(&JsValue::from_str("#333"));
+        ctx.fill_rect(0.0, 0.0, state.page.width, state.page.height);
     }
 
-    context.begin_path();
-    context.set_line_width(2.0 * state.page.device_pixel_ratio);
-    context.set_stroke_style(&JsValue::from_str("#fff"));
+    if js_sys::Math::random() > 0.95 {
+        // There are only so many bits in the color representation, and this value is
+        // destructive. Only call it sparingly.
+        ctx.set_fill_style(&JsValue::from_str("#33333303"));
+    } else {
+        ctx.set_fill_style(&JsValue::from_str("#33333302"));
+    }
+
+    ctx.fill_rect(0.0, 0.0, state.page.width, state.page.height);
+
+    ctx.begin_path();
+    ctx.set_line_width(1.5 * state.page.device_pixel_ratio);
+    ctx.set_stroke_style(&JsValue::from_str("#fff"));
 
     let nodes_borrow = state.nodes.borrow();
     let mut base_node = nodes_borrow
@@ -124,5 +134,5 @@ fn draw_lines(state: &State) {
 
     base_node.draw(&state.nodes, &state.page, state.force_redraw);
 
-    context.stroke();
+    ctx.stroke();
 }
