@@ -1,13 +1,16 @@
-extern crate cgmath;
-
-use self::cgmath::prelude::*;
-use self::cgmath::Vector2;
+use cgmath::prelude::*;
+use cgmath::{Point2, Vector2};
 use dom;
+use spade::rtree::RTree;
+use spade::BoundingRect;
 use std::cell::RefCell;
 use std::rc::Rc;
+use tree_node_ref::TreeNodeReference;
+
+#[allow(unused_imports)]
 use web_sys::console;
 
-type MutableNodes = RefCell<Vec<Rc<RefCell<TreeNode>>>>;
+pub type MutableNodes = RefCell<Vec<Rc<RefCell<TreeNode>>>>;
 type TreeNodeIndex = usize;
 
 #[derive(Debug)]
@@ -37,9 +40,9 @@ impl TreeNode {
             children: Vec::new(),
             depth: depth,
             grow_speed: random(0.02, 0.08),
-            limb_length: random(0.02, 0.08),
+            limb_length: random(0.01, 0.04),
             split_theta_range: 1.0,
-            max_tree_depth: 18,
+            max_tree_depth: 40,
         }
     }
 
@@ -93,14 +96,33 @@ impl TreeNode {
     }
 
     /// Go through all of the nodes, and find any that intersect, excluding the current one.
-    pub fn find_intersecting_points(&self, nodes: &MutableNodes) -> Vec<Vector2<f64>> {
+    pub fn find_intersecting_points(
+        &self,
+        nodes: &MutableNodes,
+        r_tree: &RTree<TreeNodeReference>,
+    ) -> Vec<Vector2<f64>> {
+        let r_tree_intersections = r_tree.lookup_in_rectangle(&BoundingRect::from_corners(
+            &Point2::new(self.start.x, self.start.y),
+            &Point2::new(self.end.x, self.end.y),
+        ));
+
         let mut intersections = Vec::new();
+
         // Go through all the lines and check for intersections.
         let nodes_borrow = nodes
             .try_borrow()
             .expect("Attempting to borrow the nodes to check for intersections");
 
-        for node_cell in nodes_borrow.iter() {
+        for TreeNodeReference {
+            from,
+            to,
+            node_index,
+        } in r_tree_intersections
+        {
+            let node_cell = nodes_borrow
+                .get(*node_index)
+                .expect("Got a node from a TreeNodeReference");
+
             match node_cell.try_borrow() {
                 Ok(node) => match self.intersects(&node) {
                     Some(vec) => intersections.push(vec),
@@ -133,8 +155,8 @@ impl TreeNode {
         })
     }
 
-    pub fn split(&mut self, nodes: &MutableNodes) {
-        let intersections = self.find_intersecting_points(nodes);
+    pub fn split(&mut self, nodes: &MutableNodes, r_tree: &mut RTree<TreeNodeReference>) {
+        let intersections = self.find_intersecting_points(nodes, r_tree);
         let nearest_intersection = self.find_nearest_intersection(intersections);
         let new_start = &self.end;
         let depth = self.depth + random(0.45, 1.0).round() as i32;
@@ -149,13 +171,20 @@ impl TreeNode {
                 new_start.y + theta.sin() * self.limb_length,
             )
         };
+        let new_index = {
+            let mut nodes_borrow = nodes
+                .try_borrow()
+                .expect("Unable to checkout nodes during a split");
+            nodes_borrow.len()
+        };
 
         let new_node = {
             // Create the new node, and modify it if it intersects with any existing nodes.
             let mut new_node = TreeNode::new(new_start.x, new_start.y, new_end.x, new_end.y, depth);
-
-            let intersections = new_node.find_intersecting_points(nodes);
+            let intersections = new_node.find_intersecting_points(nodes, r_tree);
             let nearest_intersection = new_node.find_nearest_intersection(intersections);
+
+            r_tree.insert(TreeNodeReference::from_node(&new_node, new_index));
 
             match nearest_intersection {
                 Some(intersection) => {
@@ -172,58 +201,20 @@ impl TreeNode {
             let mut mutable_nodes = nodes
                 .try_borrow_mut()
                 .expect("Unable to checkout mutables nodes for a split");
-            let index = mutable_nodes.len();
             mutable_nodes.push(Rc::new(RefCell::new(new_node)));
-            self.children.push(index)
+            self.children.push(new_index)
         }
     }
 
-    pub fn split2(&mut self, nodes: &MutableNodes) {
-        let intersections = self.find_intersecting_points(nodes);
-        let nearest_intersection = self.find_nearest_intersection(intersections);
-        let new_start = &self.end;
-
-        let mut mutable_nodes = nodes
-            .try_borrow_mut()
-            .expect("Unable to checkout mutables nodes for a split");
-        let index = mutable_nodes.len();
-
-        let (depth, new_end) = match nearest_intersection {
-            Some(intersection) => (self.max_tree_depth, intersection),
-            None => {
-                let depth = self.depth + random(0.45, 1.0).round() as i32;
-                // Rotate the node a bit randomly.
-                let diff = self.end - self.start;
-                let drift: f64 =
-                    js_sys::Math::random() * self.split_theta_range - self.split_theta_range * 0.5;
-                let theta = diff.y.atan2(diff.x) + drift;
-                let new_end = Vector2::new(
-                    new_start.x + theta.cos() * self.limb_length,
-                    new_start.y + theta.sin() * self.limb_length,
-                );
-                (depth, new_end)
-            }
-        };
-
-        mutable_nodes.push(Rc::new(RefCell::new(TreeNode::new(
-            new_start.x,
-            new_start.y,
-            new_end.x,
-            new_end.y,
-            depth,
-        ))));
-        self.children.push(index)
-    }
-
-    pub fn grow(&mut self, nodes: &MutableNodes) {
+    pub fn grow(&mut self, nodes: &MutableNodes, r_tree: &mut RTree<TreeNodeReference>) {
         if self.children.len() == 0 {
             // Grow the line.
             self.growth_length = (self.growth_length + self.grow_speed).min(1.0);
 
             if self.growth_length == 1.0 && self.depth < self.max_tree_depth {
                 self.growth_length = 1.0;
-                self.split(&nodes);
-                self.split(&nodes);
+                self.split(&nodes, r_tree);
+                self.split(&nodes, r_tree);
             }
         }
 
@@ -240,7 +231,7 @@ impl TreeNode {
                 .try_borrow_mut()
                 .expect("Failed to get a child node during the grow method.");
 
-            child_node_borrow.grow(&nodes);
+            child_node_borrow.grow(&nodes, r_tree);
         }
     }
 

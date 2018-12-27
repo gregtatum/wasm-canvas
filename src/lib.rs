@@ -2,12 +2,15 @@
 #![allow(unused_variables)]
 pub mod dom;
 pub mod draw;
-pub mod lines;
+pub mod tree_node;
+pub mod tree_node_ref;
 
 #[macro_use]
 extern crate serde_derive;
+extern crate cgmath;
 extern crate console_error_panic_hook;
 extern crate js_sys;
+extern crate spade;
 extern crate wasm_bindgen;
 extern crate web_sys;
 
