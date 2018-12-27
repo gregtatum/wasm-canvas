@@ -30,6 +30,8 @@ pub struct State {
     /// This flag gets changed when it's necessary to completely redraw the visualization.
     /// This is potentially an expensive operation, so care has been taken to limit re-draws.
     pub force_redraw: bool,
+    /// How many times tick has been called.
+    pub tick_count: u32,
     /// Remember the current state of the page we are on, such as width and height.
     pub page: PageState,
     /// This is a data structure to help speed up intersection tests for nodes.
@@ -45,8 +47,8 @@ pub fn init(page: PageState) -> State {
     let mut tree = TreeNode::new(0.0, 0.0, 0.0, 0.0, 0);
     let l = tree.limb_length;
     // Variable naming: left, right, bottom, top - l, r, b, t
-    let lt = TreeNode::new(-0.5, -0.5, -0.5 + l, -0.5 + l, 1);
-    let lb = TreeNode::new(-0.5, 0.5, -0.5 + l, 0.5 - l, 1);
+    let lt = TreeNode::new(-0.25, -0.5, -0.25 + l, -0.5 + l, 1);
+    let lb = TreeNode::new(-0.5, 0.25, -0.5 + l, 0.25 - l, 1);
     let rt = TreeNode::new(0.5, -0.5, 0.5 - l, -0.5 + l, 1);
     let rb = TreeNode::new(0.5, 0.5, 0.5 - l, 0.5 - l, 1);
     {
@@ -73,6 +75,7 @@ pub fn init(page: PageState) -> State {
         nodes,
         page,
         force_redraw: true,
+        tick_count: 0,
         r_tree,
     }
 }
@@ -100,6 +103,7 @@ pub fn tick(state: &mut State) {
 
     // Reset the force_redraw.
     state.force_redraw = false;
+    state.tick_count += 1;
 }
 
 /// Draw all of the lines.
@@ -112,15 +116,16 @@ fn draw_lines(state: &State) {
         ctx.fill_rect(0.0, 0.0, state.page.width, state.page.height);
     }
 
-    if js_sys::Math::random() > 0.95 {
-        // There are only so many bits in the color representation, and this value is
-        // destructive. Only call it sparingly.
-        ctx.set_fill_style(&JsValue::from_str("#33333303"));
-    } else {
-        ctx.set_fill_style(&JsValue::from_str("#33333302"));
+    if state.tick_count < 400 {
+        if js_sys::Math::random() > 0.95 {
+            // There are only so many bits in the color representation, and this value is
+            // destructive. Only call it sparingly.
+            ctx.set_fill_style(&JsValue::from_str("#33333303"));
+        } else {
+            ctx.set_fill_style(&JsValue::from_str("#33333302"));
+        }
+        ctx.fill_rect(0.0, 0.0, state.page.width, state.page.height);
     }
-
-    ctx.fill_rect(0.0, 0.0, state.page.width, state.page.height);
 
     ctx.begin_path();
     ctx.set_line_width(1.5 * state.page.device_pixel_ratio);
