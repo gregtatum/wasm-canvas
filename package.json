@@ -13,7 +13,9 @@
     "serve": "webpack-dev-server",
     "start": "run-p watch-wasm serve"
   },
-  "dependencies": {},
+  "dependencies": {
+    "copy-webpack-plugin": "^4.6.0"
+  },
   "devDependencies": {
     "html-webpack-plugin": "^3.2.0",
     "npm-run-all": "^4.1.5",
